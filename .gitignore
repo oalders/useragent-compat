@@ -1,4 +1,5 @@
 .build
-/UserAgent-Compat*
 local
+.*swp
 .tidyall.d
+/UserAgent-Compat*
