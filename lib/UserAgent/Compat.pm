@@ -47,6 +47,11 @@ sub put {
     return $self->_res( 'put', @_ );
 }
 
+sub _raw {
+    my $self = shift;
+    return $self->{raw};
+}
+
 sub request {
     my $self = shift;
     my $req  = shift;
@@ -107,38 +112,38 @@ sub new {
 
 sub code {
     my $self = shift;
-    unless ( blessed( $self->{raw} ) ) {
-        return $self->{raw}->{status};
+    unless ( blessed( $self->_raw ) ) {
+        return $self->_raw->{status};
     }
 
-    if ( $self->{raw}->isa('Mojo::Transaction::HTTP') ) {
-        return $self->{raw}->res->code;
+    if ( $self->_raw->isa('Mojo::Transaction::HTTP') ) {
+        return $self->_raw->res->code;
     }
 
-    return $self->{raw}->code;
+    return $self->_raw->code;
 }
 
 sub content {
     my $self = shift;
-    unless ( blessed( $self->{raw} ) ) {
-        return $self->{raw}->{content};
+    unless ( blessed( $self->_raw ) ) {
+        return $self->_raw->{content};
     }
 
-    if ( $self->{raw}->isa('Mojo::Transaction::HTTP') ) {
-        return $self->{raw}->res->body;
+    if ( $self->_raw->isa('Mojo::Transaction::HTTP') ) {
+        return $self->_raw->res->body;
     }
 
-    return $self->{raw}->content;
+    return $self->_raw->content;
 }
 
-sub as_object {
+sub _raw {
     my $self = shift;
     return $self->{raw};
 }
 
 sub headers {
     my $self = shift;
-    my $raw  = $self->{raw};
+    my $raw  = $self->_raw;
 
     # HTTP::Tiny returns a HashRef
     unless ( blessed($raw) ) {
@@ -156,7 +161,7 @@ sub headers {
 
 sub is_success {
     my $self = shift;
-    my $raw  = $self->{raw};
+    my $raw  = $self->_raw;
 
     # HTTP::Tiny returns a HashRef
     unless ( blessed($raw) ) {
