@@ -27,6 +27,16 @@ sub head {
     return $self->_res( 'head', @_ );
 }
 
+sub patch {
+    my $self = shift;
+    if ( $self->{user_agent}->isa('Mojo::UserAgent') ) {
+        return $self->_res( 'patch', @_ );
+    }
+    my $req
+        = HTTP::Request->new( PATCH => shift );    # some data being lost here
+    return $self->request($req);
+}
+
 sub post {
     my $self = shift;
     return $self->_res( 'post', @_ );
@@ -44,13 +54,24 @@ sub request {
 
     if ( $self->{user_agent}->isa('HTTP::Tiny') ) {
         my @args = (
-            $req->uri, $req->method,
-            { headers => $req->headers->flatten || [], content => $req->content }
+            $req->method, $req->uri,
+            {
+                headers => { $req->headers->flatten }
+                ,    # this is potentially wrong
+                content => $req->content
+            }
         );
         $res = $self->{user_agent}->request(@args);
     }
-    else {
+    elsif ( !$self->{user_agent}->isa('Mojo::UserAgent') ) {
         $res = $self->{user_agent}->request($req);
+    }
+    else {
+        my $http_verb = lc $req->method;
+        $res = $self->$http_verb(
+            $req->uri->as_string,
+            { $req->headers->flatten }
+        )->{raw};
     }
     return UserAgent::Compat::Response->new($res);
 }
@@ -144,7 +165,9 @@ sub is_success {
 
     # Furl::Response, HTTP::Response
     if ( $raw->can('is_success') ) {
-        return $raw->is_success && !$raw->header('X-Died');
+        return $raw->isa('HTTP::Response')
+            ? $raw->is_success && !$raw->header('X-Died')
+            : $raw->is_success;
     }
 
     # Mojo::Transaction::HTTP

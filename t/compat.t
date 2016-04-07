@@ -28,31 +28,37 @@ METHOD:
     foreach my $method ( 'delete', 'get', 'head', 'patch', 'post', 'put' ) {
         my $res;
         my $url = 'http://127.0.0.1:3000';
-        diag '-'x40;
-        try {
-            $res
-                = $method ne 'patch'
-                ? $compat->$method($url)
-                : $compat->request( HTTP::Request->new( PATCH => $url ) );
-        }
-        catch {
-            diag $_;
-            #exit;
-            next METHOD;
-        };
-        ok( $res,             "$method via " . $class );
-        ok( $res->is_success, 'is_success' );
-        ok( $res->headers,    'headers' );
-        ok( $res->code,       'code: ' . $res->code );
-        unless ( $method eq 'head' ) {
-            diag( np( $res ) );
-            ok( $res->content, 'content' );
-        }
-        #diag( np( $res->headers ) );
-
-        #    diag( np( $res->as_object ) );
+        test_request( sub { $compat->$method($url) }, $class, $method );
+        test_request(
+            sub {
+                $compat->request( HTTP::Request->new( uc($method) => $url ) );
+            },
+            $class,
+            "$method via ->request"
+        );
     }
 }
 
+sub test_request {
+    my $cb     = shift;
+    my $class  = shift;
+    my $method = shift;
+    try {
+        $res = $cb->();
+    }
+    catch {
+        diag $_;
+        diag 'skipping further tests for this';
+        next METHOD;
+    };
+    ok( $res,             "$method ($class)" );
+    ok( $res->is_success, 'is_success' );
+    ok( $res->headers,    'headers' );
+    ok( $res->code,       'code: ' . $res->code );
+    unless ( $method =~ m{\Ahead} ) {
+        ok( $res->content, 'content' );
+        diag( np( $res->{raw} ) ) unless $res->content;
+    }
+}
 done_testing();
 
